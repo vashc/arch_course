@@ -3,9 +3,9 @@ replicaCount: 2
 namespace: hw2
 
 image:
-  repository: arch_course
-  name: hw2
-  tag: latest
+  repository: wittlich
+  name: arch-course-hw2
+  tag: v1
   pullPolicy: IfNotPresent
 
 service:
