@@ -14,6 +14,9 @@ build-all:
 docker:
 	docker build -f ./internal/$(CMD)/Dockerfile -t arch_course/$(CMD) .
 
+docker_local: docker
+	minikube image load arch_course/$(CMD):latest
+
 test:
 	go test $(FLAGS) ./...
 
