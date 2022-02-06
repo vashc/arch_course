@@ -1,0 +1,9 @@
+serviceMonitor:
+  enabled: true
+  namespace: monitoring
+  interval: 10s
+
+config:
+  datasourceSecret:
+    name: hw3-secret
+    key: PG_URI

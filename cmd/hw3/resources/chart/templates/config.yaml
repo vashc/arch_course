@@ -1,0 +1,41 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: {{ .Values.service_namespace }}
+  name: {{ .Release.Name }}-config
+data:
+  PG_USER: "hw3_user"
+  PG_HOST: "postgres"
+  PG_PORT: "5432"
+  PG_DB: "hw3"
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  namespace: {{ .Values.service_namespace }}
+  name: {{ .Release.Name }}-secret
+type: Opaque
+data:
+  PG_PASSWORD: {{ printf "%s" .Values.postgresql.password | b64enc | quote }}
+  PG_URI: {{ printf "postgresql://%s:%s@%s:%s/%s?sslmode=disable"
+  .Values.postgresql.user
+  .Values.postgresql.password
+  .Values.postgresql.host
+  .Values.postgresql.port
+  .Values.postgresql.database  | b64enc | quote }}
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  namespace: {{ .Values.monitoring_namespace }}
+  name: {{ .Release.Name }}-secret
+type: Opaque
+data:
+  PG_URI: {{ printf "postgresql://%s:%s@%s:%s/%s?sslmode=disable"
+  .Values.postgresql.user
+  .Values.postgresql.password
+  .Values.postgresql.host
+  .Values.postgresql.port
+  .Values.postgresql.database  | b64enc | quote }}
