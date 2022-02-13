@@ -2,6 +2,7 @@ package hw2
 
 import (
 	"encoding/json"
+
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -96,6 +97,7 @@ func (s *Service) deleteUserHandler() func(*fiber.Ctx) error {
 			return err
 		}
 
+		//nolint:gocritic // It's an intentional one
 		if err = s.storage.DeleteUser(userID); err != nil {
 			return err
 		}
@@ -146,20 +148,20 @@ func (s *Service) healthHandler() func(*fiber.Ctx) error {
 	}
 }
 
-func (s *Service) getResponse(err error, message string) (int, string) {
-	code := fiber.StatusOK
-	response, _ := json.Marshal(Response{
+func (s *Service) getResponse(err error, message string) (code int, response string) {
+	code = fiber.StatusOK
+	rawResponse, _ := json.Marshal(Response{
 		Code:    code,
 		Message: message,
 	})
 
 	if err != nil {
 		code = fiber.StatusInternalServerError
-		response, _ = json.Marshal(Response{
+		rawResponse, _ = json.Marshal(Response{
 			Code:    code,
 			Message: "internal server error",
 		})
 	}
 
-	return code, string(response)
+	return code, string(rawResponse)
 }

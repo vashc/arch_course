@@ -1,4 +1,4 @@
-package hw2
+package user_service
 
 import (
 	"fmt"
@@ -31,34 +31,7 @@ func (s *Storage) Close() error {
 	return s.sess.Close()
 }
 
-func (s *Storage) CreateUser(user *User) error {
-	query := `
-INSERT INTO users(username, first_name, last_name, email, phone)
-VALUES (?, ?, ?, ?, ?);
-`
-
-	tx, err := s.sess.Begin()
-	if err != nil {
-		return err
-	}
-	defer tx.RollbackUnlessCommitted()
-
-	_, err = tx.InsertBySql(
-		query,
-		user.Username,
-		user.FirstName,
-		user.LastName,
-		user.Email,
-		user.Phone,
-	).Exec()
-	if err != nil {
-		return err
-	}
-
-	return tx.Commit()
-}
-
-func (s *Storage) GetUser(id int64) (user *User, err error) {
+func (s *Storage) GetUserByID(id int64) (user *User, err error) {
 	query := `
 SELECT *
 FROM users
@@ -88,7 +61,7 @@ SET
 	first_name = COALESCE(NULLIF(?, ''), u.first_name),	
 	last_name = COALESCE(NULLIF(?, ''), u.last_name),	
 	email = COALESCE(NULLIF(?, ''), u.email),	
-	phone = COALESCE(NULLIF(?, ''), u.phone)
+	password = COALESCE(NULLIF(?, ''), u.password)
 WHERE id = ?;
 `
 
@@ -104,7 +77,7 @@ WHERE id = ?;
 		user.FirstName,
 		user.LastName,
 		user.Email,
-		user.Phone,
+		user.Password,
 		user.ID,
 	).Exec()
 	if err != nil {
