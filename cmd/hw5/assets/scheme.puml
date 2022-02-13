@@ -53,11 +53,11 @@ else #Pink
 
 end
 
-end
-
 else #Pink
 
 "Service" -> "User" : Unauthorized [401]
+
+end
 
 end
 
