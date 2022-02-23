@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: {{ .Values.namespace }}
+  name: {{ .Release.Name }}-deployment-auth
+  labels:
+    app: {{ .Release.Name }}-auth-app
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}-auth-app
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}-auth-app
+    spec:
+      containers:
+        - name: {{ .Values.image_auth.name }}
+          image: "{{ .Values.image_auth.repository }}/{{ .Values.image_auth.name }}:{{ .Values.image_auth.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image_auth.pullPolicy }}
+          ports:
+            - name: web-auth
+              containerPort: {{ .Values.service_auth.port }}
+              protocol: TCP
+          env:
+            - name: DATABASE_URI
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-secret
+                  key: PG_URI
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-secret
+                  key: JWT_SECRET
+{{/*          livenessProbe:*/}}
+{{/*            httpGet:*/}}
+{{/*              path: /health*/}}
+{{/*              port: web-auth*/}}
+{{/*          readinessProbe:*/}}
+{{/*            httpGet:*/}}
+{{/*              path: /health*/}}
+{{/*              port: web-auth*/}}

@@ -1,15 +1,15 @@
 package hw3
 
 import (
+	"github.com/go-chi/chi/v5"
 	"github.com/gocraft/dbr/v2"
-	"github.com/gofiber/fiber/v2"
 )
 
 type Service struct {
 	config  *Config
 	storage *Storage
 
-	*fiber.App
+	*chi.Mux
 }
 
 type Storage struct {
@@ -31,6 +31,5 @@ type User struct {
 }
 
 type Response struct {
-	Code    int    `json:"code"`
-	Message string `json:"message"`
+	Status string `json:"status"`
 }

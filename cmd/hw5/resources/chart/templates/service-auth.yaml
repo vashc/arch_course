@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: {{ .Values.namespace }}
+  name: {{ .Release.Name }}-service-auth
+  labels:
+    app: {{ .Release.Name }}-auth-app
+spec:
+  type: {{ .Values.service_auth.type }}
+  ports:
+    - port: {{ .Values.service_auth.port }}
+      targetPort: web-auth
+      protocol: TCP
+      name: web-auth
+  selector:
+    app: {{ .Release.Name }}-auth-app

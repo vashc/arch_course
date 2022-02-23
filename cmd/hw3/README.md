@@ -1,36 +1,26 @@
 # Setup
-```helm install hw2 ./resources/chart/```
+To install Helm chart and all the necessary charts (including Nginx ingress controller, Prometheus stack and Postgres exporter) use this command:  
+```. ./install.sh```
 
-All resources are automatically installed within Kubernetes namespace named `hw2`.
+To uninstall chart and all dependencies use  
+```. ./uninstall.sh```
 
-# Test cases
+Application service and Postgres exporter are installed within the `hw3` namespace, ingress controller is installed in `ingress-nginx` namespace, Prometheus stack is installed in `monitoring` namespace.  
 
-All test scenarios could be acquired via postman collection which is located in the `/tests` folder.
+Grafana dashboard named `hw3` is installed automatically and its definition can be found in `./resources/dashboard.json`
 
-# Models
-`user`:
-```json
-{
-  "id":         integer(int64),
-  "username":   string,
-  "firstName":  string,
-  "lastName":   string,
-  "email":      string,
-  "phone":      string
-}
-```
+# Load Testing
 
-`response`:
-```json
-{
-  "code":    int,
-  "message": string
-}
-```
+Load testing is performed using Locust test suite. To start service testing use  
+```. ./test.sh```  
 
-# Application description
+Here is a dashboard screenshot after 5 minutes of locust runner work:  
+![plot](./assets/load_testing.png)
+
+# Application Description
 There are five endpoints that application can handle:
 * GET `/health` is used for healthcheck and returns `{"status": "OK"}`
+* GET `/metrics` is used for metrics acquiring
 * POST `/user` is used for user creation and returns response with "`user created`" message and status 200
 * GET `/user/<user_id>` is used for user information acquiring and returns response with user data in JSON format
 * PUT `/user/<user_id>` is used for user information updating and returns response with "`user updated`" message and status 200

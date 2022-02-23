@@ -7,6 +7,6 @@ var (
 )
 
 var (
-	errEmptyUserID           = errors.New("empty user ID")
-	errIncorrectUserIDFormat = errors.New("incorrect user ID format")
+	ErrUnsupportedMediaType = errors.New("Content-Type header is not application/json")
+	ErrRequestBodyDeconding = errors.New("request body contains badly formed JSON")
 )

@@ -1,18 +1,34 @@
 FLAGS?=-v
-CMD?=hw1
+CMD?=hw5
+SERVICE?=
+
+services := $(notdir $(shell find ./internal/$(CMD)/ -mindepth 1 -maxdepth 1 -type d))
 
 default: test lint
 
 .SILENT:
 
 build:
-	go build -o ./bin/$(CMD) $(FLAGS) ./cmd/$(CMD)
+	if [ "$(SERVICE)" = "" ]; then \
+		go build -o ./bin/$(CMD) $(FLAGS) ./cmd/$(CMD) ;\
+	else \
+  		go build -o ./bin/$(CMD)/$(SERVICE) $(FLAGS) ./cmd/$(CMD)/$(SERVICE) ;\
+	fi
 
-build-all:
+build_all:
 	$(foreach dir,$(wildcard cmd/*), go build $(FLAGS) ./$(dir);)
 
 docker:
-	docker build -f ./internal/$(CMD)/Dockerfile -t arch_course/$(CMD) .
+	if [ "$(SERVICE)" = "" ]; then \
+		docker build -f ./internal/$(CMD)/Dockerfile -t arch_course/$(CMD) . ;\
+	else \
+	  	docker build -f ./internal/$(CMD)/$(SERVICE)/Dockerfile -t arch_course/$(CMD)/$(SERVICE) . ;\
+	fi
+
+docker_all:
+	for service in $(services) ; do \
+  		docker build -f ./internal/$(CMD)/$$service/Dockerfile -t arch_course/$(CMD)/$$service . ;\
+  	done
 
 docker_local: docker
 	minikube image load arch_course/$(CMD):latest
@@ -26,4 +42,4 @@ lint:
 tidy:
 	go mod tidy
 
-.PHONY: build build-all test lint tidy
+.PHONY: build build_all docker docker_all test lint tidy

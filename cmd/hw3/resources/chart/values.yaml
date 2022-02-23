@@ -2,11 +2,12 @@ replicaCount: 1
 
 service_namespace: hw3
 monitoring_namespace: monitoring
+ingress_namespace: ingress-nginx
 
 image:
-  repository: arch_course
-  name: hw3
-  tag: latest
+  repository: wittlich
+  name: arch-course-hw3
+  tag: v1
   pullPolicy: IfNotPresent
 service:
   type: NodePort

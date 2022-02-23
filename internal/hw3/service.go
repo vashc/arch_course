@@ -2,55 +2,30 @@ package hw3
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
+	"net/http"
+	"strconv"
 
-	"github.com/gofiber/adaptor/v2"
-	"github.com/gofiber/fiber/v2"
+	"github.com/go-chi/chi/v5"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-func NewService(config *Config, storage *Storage, monitor *Monitor) *Service {
-	appConfig := fiber.Config{
-		// Override default error handler
-		ErrorHandler: func(c *fiber.Ctx, err error) error {
-			// Status code defaults to 500
-			code := fiber.StatusInternalServerError
-
-			// Retrieve the custom status code if it's an fiber.*Error
-			if e, ok := err.(*fiber.Error); ok {
-				code = e.Code
-			}
-
-			response, _ := json.Marshal(Response{
-				Code:    code,
-				Message: fmt.Sprintf("internal server error: %s", err.Error()),
-			})
-
-			monitor.errorRate.WithLabelValues(c.Method(), c.Route().Path).Inc()
-
-			return c.Status(code).SendString(string(response))
-		},
-	}
-
-	app := fiber.New(appConfig)
-	app.Use(monitor.Prometheus())
-
+func NewService(config *Config, storage *Storage) *Service {
 	return &Service{
 		config:  config,
 		storage: storage,
-		App:     app,
+		Mux:     chi.NewRouter(),
 	}
 }
 
 func (s *Service) InstantiateRoutes() {
-	s.Post("/user", s.createUserHandler())
-
-	s.Get("/user/:userID", s.getUserHandler())
-
-	s.Delete("/user/:userID", s.deleteUserHandler())
-
-	s.Put("/user/:userID", s.updateUserHandler())
+	s.Route("/user", func(router chi.Router) {
+		router.Use(NewPatternMiddleware("hw3"))
+		router.Get("/{user_id}", s.getUserHandler())
+		router.Post("/", s.createUserHandler())
+		router.Put("/{user_id}", s.updateUserHandler())
+		router.Delete("/{user_id}", s.deleteUserHandler())
+	})
 
 	s.Get("/health", s.healthHandler())
 
@@ -58,156 +33,166 @@ func (s *Service) InstantiateRoutes() {
 }
 
 func (s *Service) Start(port string) error {
-	return s.Listen(port)
+	return http.ListenAndServe(port, s)
 }
 
-func (s *Service) createUserHandler() func(*fiber.Ctx) error {
-	return func(c *fiber.Ctx) (err error) {
-		log.Print("POST /user")
+func (s *Service) createUserHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		user := new(User)
 
-		c.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
+		err := BodyParser(w, r, user)
+		if err != nil {
+			code := http.StatusUnprocessableEntity
+			http.Error(w, http.StatusText(code), code)
+			return
+		}
 
-		defer func() {
-			code, response := s.getResponse(err, "user created")
-			_ = c.Status(code).SendString(response)
-		}()
+		err = s.storage.CreateUser(user)
+		if err != nil {
+			code := http.StatusInternalServerError
+			http.Error(w, http.StatusText(code), code)
+			return
+		}
+
+		resp, err := json.Marshal(Response{Status: http.StatusText(http.StatusOK)})
+		if err != nil {
+			code := http.StatusInternalServerError
+			http.Error(w, http.StatusText(code), code)
+			return
+		}
+
+		_, _ = w.Write(resp)
+	}
+}
+
+func (s *Service) getUserHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		userID := chi.URLParam(r, userID)
+		if userID == "" {
+			code := http.StatusBadRequest
+			http.Error(w, http.StatusText(code), code)
+			return
+		}
+
+		requestedUserID, err := strconv.ParseInt(userID, 10, 64)
+		if err != nil {
+			code := http.StatusBadRequest
+			http.Error(w, http.StatusText(code), code)
+			return
+		}
+
+		user, err := s.storage.GetUser(requestedUserID)
+		if err != nil {
+			code := http.StatusNotFound
+			http.Error(w, http.StatusText(code), code)
+			return
+		}
+
+		var resp []byte
+		resp, err = json.Marshal(user)
+		if err != nil {
+			code := http.StatusInternalServerError
+			http.Error(w, http.StatusText(code), code)
+			return
+		}
+
+		_, _ = w.Write(resp)
+	}
+}
+
+func (s *Service) deleteUserHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		userID := chi.URLParam(r, userID)
+		if userID == "" {
+			code := http.StatusBadRequest
+			http.Error(w, http.StatusText(code), code)
+			return
+		}
+
+		requestedUserID, err := strconv.ParseInt(userID, 10, 64)
+		if err != nil {
+			code := http.StatusBadRequest
+			http.Error(w, http.StatusText(code), code)
+			return
+		}
+
+		err = s.storage.DeleteUser(requestedUserID)
+		if err != nil {
+			code := http.StatusInternalServerError
+			http.Error(w, http.StatusText(code), code)
+			return
+		}
+
+		resp, err := json.Marshal(Response{Status: http.StatusText(http.StatusOK)})
+		if err != nil {
+			code := http.StatusInternalServerError
+			http.Error(w, http.StatusText(code), code)
+			return
+		}
+
+		_, _ = w.Write(resp)
+	}
+}
+
+func (s *Service) updateUserHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		userID := chi.URLParam(r, userID)
+		if userID == "" {
+			code := http.StatusBadRequest
+			http.Error(w, http.StatusText(code), code)
+			return
+		}
+
+		requestedUserID, err := strconv.ParseInt(userID, 10, 64)
+		if err != nil {
+			code := http.StatusBadRequest
+			http.Error(w, http.StatusText(code), code)
+			return
+		}
 
 		user := new(User)
 
-		if err := c.BodyParser(user); err != nil {
-			return err
+		err = BodyParser(w, r, user)
+		if err != nil {
+			code := http.StatusUnprocessableEntity
+			http.Error(w, http.StatusText(code), code)
+			return
 		}
 
-		if err := s.storage.CreateUser(user); err != nil {
-			return err
+		user.ID = requestedUserID
+
+		err = s.storage.UpdateUser(user)
+		if err != nil {
+			code := http.StatusInternalServerError
+			http.Error(w, http.StatusText(code), code)
+			return
 		}
 
-		return
+		resp, err := json.Marshal(Response{Status: http.StatusText(http.StatusOK)})
+		if err != nil {
+			code := http.StatusInternalServerError
+			http.Error(w, http.StatusText(code), code)
+			return
+		}
+
+		_, _ = w.Write(resp)
 	}
 }
 
-func (s *Service) getUserHandler() func(*fiber.Ctx) error {
-	return func(c *fiber.Ctx) (err error) {
-		log.Print("GET /user")
-
-		c.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
-
-		defer func() {
-			code, response := s.getResponse(err, "user created")
-			if code != fiber.StatusOK {
-				log.Printf("getUser error: %s", err.Error())
-				_ = c.Status(code).SendString(response)
-			}
-		}()
-
-		userID, err := getUserIDFromCtx(c)
+func (s *Service) healthHandler() func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		resp, err := json.Marshal(Response{Status: http.StatusText(http.StatusOK)})
 		if err != nil {
-			return err
+			code := http.StatusInternalServerError
+			http.Error(w, http.StatusText(code), code)
+			return
 		}
 
-		user, err := s.storage.GetUser(userID)
-		if err != nil {
-			return err
-		}
-
-		response, err := json.Marshal(user)
-		if err != nil {
-			return err
-		}
-
-		return c.SendString(string(response))
+		_, _ = w.Write(resp)
 	}
 }
 
-func (s *Service) deleteUserHandler() func(*fiber.Ctx) error {
-	return func(c *fiber.Ctx) (err error) {
-		log.Print("DELETE /user")
-
-		c.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
-
-		defer func() {
-			code, response := s.getResponse(err, "user deleted")
-			_ = c.Status(code).SendString(response)
-		}()
-
-		userID, err := getUserIDFromCtx(c)
-		if err != nil {
-			return err
-		}
-
-		if err = s.storage.DeleteUser(userID); err != nil {
-			return err
-		}
-
-		return
-	}
-}
-
-func (s *Service) updateUserHandler() func(*fiber.Ctx) error {
-	return func(c *fiber.Ctx) (err error) {
-		log.Print("PUT /user")
-
-		c.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
-
-		defer func() {
-			code, response := s.getResponse(err, "user updated")
-			_ = c.Status(code).SendString(response)
-		}()
-
-		userID, err := getUserIDFromCtx(c)
-		if err != nil {
-			return err
-		}
-
-		user := &User{ID: userID}
-
-		if err := c.BodyParser(user); err != nil {
-			return err
-		}
-
-		if err := s.storage.UpdateUser(user); err != nil {
-			return err
-		}
-
-		return
-	}
-}
-
-func (s *Service) healthHandler() func(*fiber.Ctx) error {
-	return func(c *fiber.Ctx) error {
-		log.Print("GET /health")
-
-		response, err := json.Marshal(Response{
-			Code:    200,
-			Message: "OK",
-		})
-		if err != nil {
-			return err
-		}
-
-		return c.SendString(string(response))
-	}
-}
-
-func (s *Service) metricsHandler() func(*fiber.Ctx) error {
+func (s *Service) metricsHandler() http.HandlerFunc {
 	log.Print("GET /metrics")
-	return adaptor.HTTPHandler(promhttp.Handler())
-}
-
-func (s *Service) getResponse(err error, message string) (int, string) {
-	code := fiber.StatusOK
-	response, _ := json.Marshal(Response{
-		Code:    code,
-		Message: message,
-	})
-
-	if err != nil {
-		code = fiber.StatusInternalServerError
-		response, _ = json.Marshal(Response{
-			Code:    code,
-			Message: "internal server error",
-		})
-	}
-
-	return code, string(response)
+	return promhttp.Handler().(http.HandlerFunc)
 }

@@ -1,0 +1,53 @@
+replicaCount: 1
+
+namespace: hw5
+
+image_auth:
+  repository: wittlich
+  name: arch-course-hw5
+  tag: auth
+  pullPolicy: IfNotPresent
+
+image_user:
+  repository: wittlich
+  name: arch-course-hw5
+  tag: user
+  pullPolicy: IfNotPresent
+
+service_auth:
+  type: NodePort
+  port: 8000
+
+service_user:
+  type: NodePort
+  port: 8000
+
+postgresql:
+  user: "hw5_user"
+  password: "123"
+  database: "hw5"
+  host: "postgres"
+  port: "5432"
+
+ingress:
+  enabled: true
+  className: ""
+  annotations: {
+    kubernetes.io/ingress.class: "nginx",
+    nginx.ingress.kubernetes.io/use-regex: "true"
+  }
+  hosts:
+    - host: arch.homework
+      paths:
+        - path: /register
+          pathType: Prefix
+          serviceName: hw5-service-auth
+          servicePort: 8000
+        - path: /login
+          pathType: Prefix
+          serviceName: hw5-service-auth
+          servicePort: 8000
+        - path: /user/.*
+          pathType: Prefix
+          serviceName: hw5-service-user
+          servicePort: 8000

@@ -1,21 +1,26 @@
 package hw3
 
 import (
-	"strconv"
-
-	"github.com/gofiber/fiber/v2"
+	"encoding/json"
+	"fmt"
+	"net/http"
 )
 
-func getUserIDFromCtx(c *fiber.Ctx) (int64, error) {
-	rawUserID := c.Params("userID")
-	if rawUserID == "" {
-		return 0, errEmptyUserID
+func BodyParser(w http.ResponseWriter, r *http.Request, dst interface{}) error {
+	if r.Header.Get("Content-Type") != "application/json" {
+		return ErrUnsupportedMediaType
 	}
 
-	userID, err := strconv.ParseInt(rawUserID, 10, 64)
+	r.Body = http.MaxBytesReader(w, r.Body, 1<<10)
+
+	dec := json.NewDecoder(r.Body)
+	// Return error on any fields mismatches
+	dec.DisallowUnknownFields()
+
+	err := dec.Decode(&dst)
 	if err != nil {
-		return 0, errIncorrectUserIDFormat
+		return fmt.Errorf("%w: %s", ErrRequestBodyDeconding, err.Error())
 	}
 
-	return userID, nil
+	return nil
 }

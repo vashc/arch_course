@@ -1,0 +1,64 @@
+@startuml
+actor User
+participant "Api gateway"
+participant "Auth service"
+participant "Service"
+
+alt #LightBlue User registration
+
+User -> "Api gateway" : Request /register
+
+"Api gateway" -> "Auth service" : Request /register
+"Auth service" -> User : Response [200]
+
+end
+
+alt #LightBlue User login
+
+User -> "Api gateway" : Request /login
+
+"Api gateway" -> "Auth service" : Request /login
+
+alt #LightGreen Correct login/password
+
+"Auth service" -> User : Response [200]
+
+else #Pink
+
+"Auth service" -> User : Not found [404]
+
+end
+
+end
+
+alt #LightBlue Get/update/delete user data
+
+User -> "Api gateway" : Request /user/{id}
+
+"Api gateway" -> "Service" : Request /user/{id}
+
+"Service" -> "Service" : Check authorization header with JWT token
+
+alt #LightGreen Authorized
+
+"Service" -> "Service" : Check permission to read/write/delete user
+
+alt #LightGreen Permitted
+
+"Service" -> "User" : Response [200]
+
+else #Pink
+
+"Service" -> "User" : Forbidden [403]
+
+end
+
+else #Pink
+
+"Service" -> "User" : Unauthorized [401]
+
+end
+
+end
+
+@enduml

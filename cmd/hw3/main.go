@@ -22,13 +22,13 @@ func main() {
 	}
 
 	// Initialize metrics monitor
-	monitor, err := hw3.NewMonitor()
-	if err != nil {
-		log.Fatalf("hw3.NewMonitor error: %s", err.Error())
-	}
+	// monitor, err := hw3.NewMonitor()
+	// if err != nil {
+	//	log.Fatalf("hw3.NewMonitor error: %s", err.Error())
+	// }
 
 	// Create new fiber application service
-	service := hw3.NewService(config, storage, monitor)
+	service := hw3.NewService(config, storage)
 
 	// Instantiate routes
 	service.InstantiateRoutes()
@@ -40,7 +40,6 @@ func main() {
 	go func() {
 		<-c
 		log.Println("Gracefully shutting down")
-		_ = service.Shutdown()
 	}()
 
 	// Start handling requests
