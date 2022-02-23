@@ -1,0 +1,9 @@
+apiVersion: v2
+name: hw3-chart
+description: A Helm chart for homework №3, Prometheus
+
+type: application
+
+version: 0.1.0
+
+appVersion: 0.1.0

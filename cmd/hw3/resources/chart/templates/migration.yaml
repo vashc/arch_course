@@ -1,0 +1,51 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  namespace: {{ .Values.service_namespace }}
+  name: {{ .Release.Name }}-migration
+spec:
+  template:
+    metadata:
+      name: {{ .Release.Name }}-migration
+    spec:
+      restartPolicy: Never
+      initContainers:
+        - name: check-db-ready
+          image: postgres:latest
+          env:
+            - name: PG_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ .Release.Name }}-config
+                  key: PG_HOST
+            - name: PG_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ .Release.Name }}-config
+                  key: PG_PORT
+          command:
+            - sh
+            - "-c"
+            - |
+              until pg_isready -h $PG_HOST -p $PG_PORT;
+              do echo waiting for database; sleep 2; done;
+      containers:
+        - name: migration
+          env:
+            - name: PG_URI
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-secret
+                  key: PG_URI
+          image: postgres:latest
+          command:
+            - sh
+            - "-c"
+            - |
+              psql $PG_URI <<'EOF'
+                create table if not exists users (id bigserial primary key, username varchar, first_name varchar, last_name varchar, email varchar, phone varchar);
+                insert into users (username, first_name, last_name, email, phone)
+                  values ('test_username', 'test_firstname', 'test_lastname', 'test@test', '+79991234567')
+                on conflict do nothing;
+              EOF
+  backoffLimit: 2
