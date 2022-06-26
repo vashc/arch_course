@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: {{ .Values.namespace }}
+  name: {{ .Release.Name }}-service-balance
+  labels:
+    app: {{ .Release.Name }}-balance-app
+spec:
+  type: {{ .Values.service_balance.type }}
+  ports:
+    - port: {{ .Values.service_balance.port }}
+      targetPort: web-balance
+      protocol: TCP
+      name: web-balance
+  selector:
+    app: {{ .Release.Name }}-balance-app

@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: {{ .Values.namespace }}
+  name: {{ .Release.Name }}-deployment-user
+  labels:
+    app: {{ .Release.Name }}-user-app
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}-user-app
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}-user-app
+    spec:
+      containers:
+        - name: {{ .Values.image_user.name }}
+          image: "{{ .Values.image_user.repository }}/{{ .Values.image_user.name }}:{{ .Values.image_user.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image_user.pullPolicy }}
+          ports:
+            - name: web-user
+              containerPort: {{ .Values.service_user.port }}
+              protocol: TCP
+          env:
+            - name: DATABASE_URI
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-secret
+                  key: PG_URI
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-secret
+                  key: JWT_SECRET
+{{/*          livenessProbe:*/}}
+{{/*            httpGet:*/}}
+{{/*              path: /health*/}}
+{{/*              port: web-user*/}}
+{{/*          readinessProbe:*/}}
+{{/*            httpGet:*/}}
+{{/*              path: /health*/}}
+{{/*              port: web-user*/}}

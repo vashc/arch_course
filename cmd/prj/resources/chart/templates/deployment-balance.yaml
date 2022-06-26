@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: {{ .Values.namespace }}
+  name: {{ .Release.Name }}-deployment-balance
+  labels:
+    app: {{ .Release.Name }}-balance-app
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}-balance-app
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}-balance-app
+    spec:
+      containers:
+        - name: {{ .Values.image_balance.name }}
+          image: "{{ .Values.image_balance.repository }}/{{ .Values.image_balance.name }}:{{ .Values.image_balance.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image_balance.pullPolicy }}
+          ports:
+            - name: web-balance
+              containerPort: {{ .Values.service_balance.port }}
+              protocol: TCP
+          env:
+            - name: DATABASE_URI
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-secret
+                  key: PG_URI
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-secret
+                  key: JWT_SECRET
+  {{/*          livenessProbe:*/}}
+  {{/*            httpGet:*/}}
+  {{/*              path: /health*/}}
+  {{/*              port: web-user*/}}
+  {{/*          readinessProbe:*/}}
+  {{/*            httpGet:*/}}
+  {{/*              path: /health*/}}
+  {{/*              port: web-user*/}}

@@ -1,0 +1,9 @@
+apiVersion: v2
+name: hw5-chart
+description: A Helm chart for homework №5, authorization and user services
+
+type: application
+
+version: 0.1.0
+
+appVersion: 0.1.0

@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: {{ .Values.namespace }}
+  name: {{ .Release.Name }}-service-notification
+  labels:
+    app: {{ .Release.Name }}-notification-app
+spec:
+  type: {{ .Values.service_notification.type }}
+  ports:
+    - port: {{ .Values.service_notification.port }}
+      targetPort: web-notify
+      protocol: TCP
+      name: web-notify
+  selector:
+    app: {{ .Release.Name }}-notification-app

@@ -1,0 +1,112 @@
+replicaCount: 1
+
+namespace: prj
+
+image_auth:
+  repository: wittlich
+  name: arch-course-prj
+  tag: auth
+  pullPolicy: IfNotPresent
+
+image_wallet:
+  repository: wittlich
+  name: arch-course-prj
+  tag: wallet
+  pullPolicy: IfNotPresent
+
+image_balance:
+  repository: wittlich
+  name: arch-course-prj
+  tag: balance
+  pullPolicy: IfNotPresent
+
+image_notification:
+  repository: wittlich
+  name: arch-course-prj
+  tag: notification
+  pullPolicy: IfNotPresent
+
+image_exchanger:
+  repository: wittlich
+  name: arch-course-prj
+  tag: exchanger
+  pullPolicy: IfNotPresent
+
+image_bcgateway:
+  repository: wittlich
+  name: arch-course-prj
+  tag: bcgateway
+  pullPolicy: IfNotPresent
+
+service_auth:
+  type: NodePort
+  port: 8000
+
+service_wallet:
+  type: NodePort
+  port: 8000
+
+service_balance:
+  type: NodePort
+  port: 8000
+
+service_notification:
+  type: NodePort
+  port: 8000
+
+service_exchanger:
+  type: NodePort
+  port: 8000
+
+service_bcgateway:
+  type: NodePort
+  port: 8000
+
+postgresql:
+  user: "prj_user"
+  password: "123"
+  database: "prj"
+  host: "postgres"
+  port: "5432"
+
+rabbitmq:
+  host: rabbitmq
+  port: 5672
+  login: user
+  password: user
+
+
+ingress:
+  enabled: true
+  className: ""
+  annotations: {
+    kubernetes.io/ingress.class: "nginx",
+    nginx.ingress.kubernetes.io/use-regex: "true"
+  }
+  hosts:
+    - host: arch.homework
+      paths:
+        - path: /register
+          pathType: Prefix
+          serviceName: prj-service-auth
+          servicePort: 8000
+        - path: /login
+          pathType: Prefix
+          serviceName: prj-service-auth
+          servicePort: 8000
+        - path: /wallet/.*
+          pathType: Prefix
+          serviceName: prj-service-wallet
+          servicePort: 8000
+        - path: /deposit/.*
+          pathType: Prefix
+          serviceName: prj-service-wallet
+          servicePort: 8000
+        - path: /sell/.*
+          pathType: Prefix
+          serviceName: prj-service-wallet
+          servicePort: 8000
+        - path: /buy/.*
+          pathType: Prefix
+          serviceName: prj-service-wallet
+          servicePort: 8000

@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: {{ .Values.namespace }}
+  name: {{ .Release.Name }}-service-exchanger
+  labels:
+    app: {{ .Release.Name }}-exchanger-app
+spec:
+  type: {{ .Values.service_exchanger.type }}
+  ports:
+    - port: {{ .Values.service_exchanger.port }}
+      targetPort: web-exchanger
+      protocol: TCP
+      name: web-exchanger
+  selector:
+    app: {{ .Release.Name }}-exchanger-app

@@ -1,6 +1,6 @@
 FLAGS?=-v
-CMD?=hw5
-SERVICE?=
+CMD?=prj
+SERVICE?=wallet
 
 services := $(notdir $(shell find ./internal/$(CMD)/ -mindepth 1 -maxdepth 1 -type d))
 
@@ -31,7 +31,12 @@ docker_all:
   	done
 
 docker_local: docker
-	minikube image load arch_course/$(CMD):latest
+	minikube image load arch_course/$(CMD)/$(SERVICE):latest
+
+docker_local_all: docker_all
+	for service in $(services) ; do \
+  		minikube image load arch_course/$(CMD)/$$service:latest ;\
+	done
 
 test:
 	go test $(FLAGS) ./...

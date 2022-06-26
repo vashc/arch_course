@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: {{ .Values.namespace }}
+  name: {{ .Release.Name }}-deployment-exchanger
+  labels:
+    app: {{ .Release.Name }}-exchanger-app
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}-exchanger-app
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}-exchanger-app
+    spec:
+      containers:
+        - name: {{ .Values.image_exchanger.name }}
+          image: "{{ .Values.image_exchanger.repository }}/{{ .Values.image_exchanger.name }}:{{ .Values.image_exchanger.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image_exchanger.pullPolicy }}
+          ports:
+            - name: web-exchanger
+              containerPort: {{ .Values.service_exchanger.port }}
+              protocol: TCP
+          env:
+            - name: DATABASE_URI
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-secret
+                  key: PG_URI
+            - name: RABBIT_HOST
+              value: {{ .Values.rabbitmq.host }}
+            - name: RABBIT_PORT
+              value: "{{ .Values.rabbitmq.port }}"
+            - name: RABBIT_LOGIN
+              value: {{ .Values.rabbitmq.login }}
+            - name: RABBIT_PASS
+              value: {{ .Values.rabbitmq.password }}
+            - name: BALANCE_HOST
+              value: {{ .Release.Name }}-service-balance
+            - name: BALANCE_PORT
+              value: "{{ .Values.service_balance.port }}"

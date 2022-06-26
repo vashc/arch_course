@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: {{ .Values.namespace }}
+  name: {{ .Release.Name }}-deployment-wallet
+  labels:
+    app: {{ .Release.Name }}-wallet-app
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}-wallet-app
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}-wallet-app
+    spec:
+      containers:
+        - name: {{ .Values.image_wallet.name }}
+          image: "{{ .Values.image_wallet.repository }}/{{ .Values.image_wallet.name }}:{{ .Values.image_wallet.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image_wallet.pullPolicy }}
+          ports:
+            - name: web-wallet
+              containerPort: {{ .Values.service_wallet.port }}
+              protocol: TCP
+          env:
+            - name: DATABASE_URI
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-secret
+                  key: PG_URI
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-secret
+                  key: JWT_SECRET
+            - name: RABBIT_HOST
+              value: {{ .Values.rabbitmq.host }}
+            - name: RABBIT_PORT
+              value: "{{ .Values.rabbitmq.port }}"
+            - name: RABBIT_LOGIN
+              value: {{ .Values.rabbitmq.login }}
+            - name: RABBIT_PASS
+              value: {{ .Values.rabbitmq.password }}
+            - name: BALANCE_HOST
+              value: {{ .Release.Name }}-service-balance
+            - name: BALANCE_PORT
+              value: "{{ .Values.service_balance.port }}"
+            - name: NOTIFICATION_HOST
+              value: {{ .Release.Name }}-service-notification
+            - name: NOTIFICATION_PORT
+              value: "{{ .Values.service_notification.port }}"
+            - name: EXCHANGER_HOST
+              value: {{ .Release.Name }}-service-exchanger
+            - name: EXCHANGER_PORT
+              value: "{{ .Values.service_exchanger.port }}"
+            - name: BCGATEWAY_HOST
+              value: {{ .Release.Name }}-service-bcgateway
+            - name: BCGATEWAY_PORT
+              value: "{{ .Values.service_bcgateway.port }}"
+            - name: AUTH_HOST
+              value: {{ .Release.Name }}-service-auth
+            - name: AUTH_PORT
+              value: "{{ .Values.service_auth.port }}"
+
+{{/*          livenessProbe:*/}}
+{{/*            httpGet:*/}}
+{{/*              path: /health*/}}
+{{/*              port: web-user*/}}
+{{/*          readinessProbe:*/}}
+{{/*            httpGet:*/}}
+{{/*              path: /health*/}}
+{{/*              port: web-user*/}}

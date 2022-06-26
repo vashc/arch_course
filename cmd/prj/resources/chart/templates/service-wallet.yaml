@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: {{ .Values.namespace }}
+  name: {{ .Release.Name }}-service-wallet
+  labels:
+    app: {{ .Release.Name }}-wallet-app
+spec:
+  type: {{ .Values.service_wallet.type }}
+  ports:
+    - port: {{ .Values.service_wallet.port }}
+      targetPort: web-wallet
+      protocol: TCP
+      name: web-wallet
+  selector:
+    app: {{ .Release.Name }}-wallet-app
