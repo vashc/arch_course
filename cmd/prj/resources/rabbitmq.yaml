@@ -1,0 +1,7 @@
+persistence:
+  enabled: false
+  size: 8Gi
+replicaCount: 1
+auth:
+  username: user
+  password: user

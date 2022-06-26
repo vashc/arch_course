@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: {{ .Values.namespace }}
+  name: {{ .Release.Name }}-service-user
+  labels:
+    app: {{ .Release.Name }}-user-app
+spec:
+  type: {{ .Values.service_user.type }}
+  ports:
+    - port: {{ .Values.service_user.port }}
+      targetPort: web-user
+      protocol: TCP
+      name: web-user
+  selector:
+    app: {{ .Release.Name }}-user-app

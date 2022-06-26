@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: {{ .Values.namespace }}
+  name: {{ .Release.Name }}-service-bcgateway
+  labels:
+    app: {{ .Release.Name }}-bcgateway-app
+spec:
+  type: {{ .Values.service_bcgateway.type }}
+  ports:
+    - port: {{ .Values.service_bcgateway.port }}
+      targetPort: web-bcgateway
+      protocol: TCP
+      name: web-bcgateway
+  selector:
+    app: {{ .Release.Name }}-bcgateway-app

@@ -1,0 +1,215 @@
+@startuml
+
+title Buy crypto flow
+
+actor User
+
+box "Wallet" #Orange
+	participant Wallet
+	participant queue_saga_steps
+	participant Wallet_worker
+end box
+
+box "Exchanger" #PapayaWhip
+	participant Exchanger
+	participant queue_exchange_orders
+	participant Exchanger_worker
+end box
+
+box "Notification" #DarkGrey
+	participant Notification
+	participant queue_notifications
+	participant Notification_worker
+end box
+
+participant "Auth service"
+participant Balance
+
+User -> Wallet : POST /buy/{user_id} (+authorization)
+note right of Wallet
+    JSON data:
+    {
+    	"fiat_amount": float64
+    }
+end note
+
+Wallet -> Wallet : create order
+note right of Wallet
+    Order:
+    {
+    	"user_id": string
+    	"type": "sell"
+    	"crypto_amount": float64
+    	"fiat_amount": float64
+    	"status": "pending"
+    }
+end note
+
+Wallet -> Balance : Decrease user crypto balance
+alt #LightGreen Ample funds
+"Balance" -> "Wallet" : Response [200]
+else #Pink
+Balance -> Wallet : Insufficient funds [423]
+Wallet -> Wallet : Fail order
+note right of Wallet
+    Order:
+    {
+    	"status": "failed"
+    }
+end note
+Wallet --> User : Locked [423]
+end
+
+Wallet -> Balance : Increase hot wallet crypto balance
+
+Wallet -> Exchanger : POST /sell/{order_id}, create exchanger sell request
+note right of Exchanger
+    JSON data:
+    {
+    	"acquirer_user_id": int64
+    	"order_id": int64
+    	"crypto_amount": float64
+    	"fiat_amount": float64
+    	"compensate": false
+    }
+end note
+
+Exchanger -> Exchanger : Create order
+note right of Exchanger
+	Order:
+	{
+		"uuid": string
+		"acquirer_user_id": int64
+		"order_id": int64
+		"crypto_amount": float64
+		"fiat_amount": float64
+		"compensate": false
+		"type": "sell"
+		"status": "new"
+	}
+end note
+
+Exchanger -> queue_exchange_orders : Publish message
+
+Exchanger_worker <- queue_exchange_orders : Take message
+
+Exchanger_worker -> Exchanger_worker : Process order
+
+alt #LightGreen Success
+Exchanger_worker -> Balance : Decrease hot wallet crypto balance
+Exchanger_worker -> Balance : Increase user fiat balance
+Exchanger_worker -> queue_saga_steps : Publish message
+note right of queue_saga_steps
+    Order:
+    {
+    	"order_id": int64
+    	"type": 0
+    	"status": "completed"
+    }
+end note
+Exchanger_worker -> Exchanger_worker : Complete order
+note right of Exchanger_worker
+    Order:
+    {
+    	"status": "completed"
+    }
+end note
+else #Pink
+Exchanger_worker -> queue_saga_steps : Publish message
+note right of queue_saga_steps
+    Order:
+    {
+    	"order_id": int64
+    	"type": 0
+    	"status": "failed"
+    }
+end note
+Exchanger_worker -> Exchanger_worker : Fail order
+note right of Exchanger_worker
+    Order:
+    {
+    	"status": "failed"
+    }
+end note
+end
+
+Exchanger --> Wallet : order.UUID
+
+Wallet --> User : Order created (UUID)
+
+Wallet_worker <- queue_saga_steps : Take saga step message
+
+Wallet_worker -> Wallet_worker : Process saga step
+
+alt #LightGreen All steps are completed
+	Wallet_worker -> "Auth service" : GET /user/{user_id}, get user data
+	"Auth service" --> Wallet_worker : user.email
+	Wallet_worker -> Notification : POST /send/{order_id}, send successful notification
+	note right of Notification
+        JSON data:
+        {
+        	"email": string
+        	"payload": string
+        }
+    end note
+	Wallet_worker -> Wallet : Complete order
+	note right of Wallet
+        Order:
+        {
+        	"status": "completed"
+        }
+    end note
+else #Pink
+	Wallet_worker -> Notification : POST /send/{order_id}, send unsuccessful notification
+	note right of Notification
+		JSON data:
+		{
+			"email": string
+			"payload": string
+		}
+	end note
+	Wallet_worker -> Wallet : Fail order
+	note right of Wallet
+		Order:
+		{
+			"status": "failed"
+		}
+	end note
+end
+
+Notification -> Notification : Create order
+note right of Notification
+	Order:
+	{
+		"order_id": int64
+		"email": string
+		"payload": string
+		"status": "new"
+	}
+end note
+
+Notification -> queue_notifations : Publish message
+
+Notification_worker <- queue_notifations : Take message
+
+Notification_worker -> Notification_worker : Process notification
+
+alt #LightGreen Success
+	Notification_worker -> Notification : Complete notification
+	note right of Notification
+		Order:
+		{
+			"status": "completed"
+		}
+	end note
+else #Pink
+	Notification_worker -> Notification : Fail notification
+	note right of Notification
+		Order:
+		{
+			"status": "failed"
+		}
+	end note
+end
+
+@enduml

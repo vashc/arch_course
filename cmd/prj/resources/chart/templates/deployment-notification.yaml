@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: {{ .Values.namespace }}
+  name: {{ .Release.Name }}-deployment-notification
+  labels:
+    app: {{ .Release.Name }}-notification-app
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}-notification-app
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}-notification-app
+    spec:
+      containers:
+        - name: {{ .Values.image_notification.name }}
+          image: "{{ .Values.image_notification.repository }}/{{ .Values.image_notification.name }}:{{ .Values.image_notification.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image_notification.pullPolicy }}
+          ports:
+            - name: web-notify
+              containerPort: {{ .Values.service_notification.port }}
+              protocol: TCP
+          env:
+            - name: DATABASE_URI
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-secret
+                  key: PG_URI
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-secret
+                  key: JWT_SECRET
+            - name: RABBIT_HOST
+              value: {{ .Values.rabbitmq.host }}
+            - name: RABBIT_PORT
+              value: "{{ .Values.rabbitmq.port }}"
+            - name: RABBIT_LOGIN
+              value: {{ .Values.rabbitmq.login }}
+            - name: RABBIT_PASS
+              value: {{ .Values.rabbitmq.password }}
